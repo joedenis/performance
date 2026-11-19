@@ -22,8 +22,8 @@ target_link_libraries(bench PRIVATE benchmark::benchmark)
 
 # Keep the branch in sum_if: stop GCC turning it into cmov or SIMD.
 # Remove these two flags to see what the optimiser does on its own.
-#target_compile_options(bench PRIVATE -O2 -fno-if-conversion -fno-if-conversion2 -fno-tree-vectorize)
+target_compile_options(bench PRIVATE -O2 -fno-if-conversion -fno-if-conversion2 -fno-tree-vectorize)
 
-target_compile_options(bench PRIVATE -O2)
+#target_compile_options(bench PRIVATE -O2)
 
 

@@ -11,17 +11,17 @@ Experiments in how CPU architecture affects C++ performance, measured with [Goog
 
 Each runs on unsorted data (the branch is a coin flip) and sorted data (the branch is predictable).
 
-### Results (4-core 3.8 GHz, 32 KiB L1d, 256 KiB L2, 6 MiB L3, GCC 13.3 -O2)
+### Results (4-core 3.8 GHz, 32 KiB L1d, 256 KiB L2, 6 MiB L3, GCC 13.3 -O2; medians of 10 repetitions with the governor set to `performance`)
 
 | | unsorted | sorted |
 |---|---|---|
-| `sum_if` | 3.61 ms | 0.52 ms |
-| `sum_mask` | 0.62 ms | 0.61 ms |
+| `sum_if` | 3.51 ms | 0.51 ms |
+| `sum_mask` | 0.60 ms | 0.60 ms |
 
 - Mispredicts make `sum_if` ~7x slower on random data.
 - `sum_mask` has no branch, so the order of the data doesn't matter.
 - On predictable data the branch is nearly free, and slightly beats the mask.
-- Estimated mispredict penalty: (3.61 − 0.52) ms ÷ 2²⁰ elements ≈ 2.9 ns ≈ 11 cycles per element. About half the elements mispredict, so ≈ 22 cycles per miss.
+- Estimated mispredict penalty: (3.51 − 0.51) ms ÷ 2²⁰ elements ≈ 2.9 ns ≈ 11 cycles per element. About half the elements mispredict, so ≈ 22 cycles per miss.
 
 Results were built with `-fno-if-conversion -fno-if-conversion2 -fno-tree-vectorize`, which stop GCC from removing the branch itself (with `cmov` or SIMD). Section 2 removes them.
 
@@ -35,12 +35,12 @@ GCC 13.3 **if-converted** `sum_if`: the assembly has a `cmov` (conditional move)
 
 | | unsorted | sorted |
 |---|---|---|
-| `sum_if`, branch kept (section 1) | 3.61 ms | 0.52 ms |
+| `sum_if`, branch kept (section 1) | 3.51 ms | 0.51 ms |
 | `sum_if`, GCC `cmov` | 0.86 ms | 0.86 ms |
 | `sum_mask` | 0.60 ms | 0.60 ms |
 
-- **Unsorted got 4.2x faster (3.61 → 0.86 ms):** with no jump, there is nothing to mispredict, so sorted and unsorted are now the same.
-- **Sorted got ~65% slower (0.52 → 0.86 ms):** a `cmov` always waits for both of its inputs, and here it sits in the loop-carried dependency on `s`. A correctly predicted branch lets the CPU run ahead speculatively instead.
+- **Unsorted got 4.1x faster (3.51 → 0.86 ms):** with no jump, there is nothing to mispredict, so sorted and unsorted are now the same.
+- **Sorted got ~70% slower (0.51 → 0.86 ms):** a `cmov` always waits for both of its inputs, and here it sits in the loop-carried dependency on `s`. A correctly predicted branch lets the CPU run ahead speculatively instead.
 - **The hand-written mask still wins:** see "Why the mask beats cmov" below.
 - Lesson: branchless isn't free. It trades a big worst case for a slightly slower best case. That's why compilers use heuristics for this, and why you measure.
 
@@ -102,7 +102,7 @@ Same code again, now with `-O3` (full vectoriser cost model) and then `-O3 -marc
 | `sum_mask` | 0.60 ms | 0.60 ms | 0.25 ms | 0.25 ms | 0.17 ms | 0.17 ms |
 
 - Both loops are fully branchless: the only jump in each vector loop is its own `jne`. Sorted and unsorted are now the same, within noise.
-- AVX2 `sum_mask` is about **20x faster than the original branchy `sum_if` on random data** (3.61 ms → 0.17 ms).
+- AVX2 `sum_mask` is about **20x faster than the original branchy `sum_if` on random data** (3.51 ms → 0.17 ms).
 
 ### What the vectoriser generated
 
