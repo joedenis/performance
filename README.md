@@ -166,7 +166,7 @@ For this code they're identical: the vectoriser is the only part of `-O3` that m
 
 ### Why AVX2 isn't 2x faster than SSE2
 
-Twice the width and fewer instructions, but `sum_mask` only went from 0.25 to 0.17 ms. At ~0.2 ns per element the loop is probably limited by how fast data arrives from the caches: the 4 MiB array fits in L3 but not in L1 or L2. That's the next experiment.
+Twice the width and fewer instructions, but `sum_mask` only went from 0.25 to 0.17 ms. Running the same loop on a 16 KiB array that fits in L1 (`cache_sizes.cpp`) shows why: it still needs about 0.15 ns (~0.5 cycles) per int, so the main limit is executing the loop's instructions, not getting data from memory. Reading the 4 MiB array from L3 adds about 18% on top.
 
 Note: a `-march=native` build only runs on CPUs with the same instruction sets. On a CPU without AVX2 it crashes with "illegal instruction".
 
@@ -201,7 +201,5 @@ sudo cpupower frequency-set --governor "$old"                       # restore it
 
 ## Next
 
-- Multiple accumulators (`s0`…`s3`) in the scalar version, to measure the dependency chain directly
-- `perf stat -e branches,branch-misses` to count mispredicts directly
 - Memory hierarchy: pointer chasing across array sizes to measure L1 / L2 / L3 / RAM latency
 - Write bandwidth
